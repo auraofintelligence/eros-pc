@@ -72,7 +72,8 @@ body{
 .sidebar .sec{padding:12px}
 .side-head{display:flex; align-items:center; justify-content:space-between; padding:14px 12px; color:var(--muted)}
 .nav{display:grid; gap:8px; padding:8px 10px}
-.nav button{display:flex; align-items:center; gap:10px; width:100%; padding:12px 12px; border-radius:12px; color:var(--text); background:transparent; border:1px solid rgba(255,255,255,.08); cursor:pointer}
+.nav button{display:flex; align-items:center; gap:10px; width:100%; padding:12px 12px; border-radius:12px; color:var(--text); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); cursor:pointer; transition: all .2s ease}
+.nav button:hover{background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.16)}
 .nav button.active{background:linear-gradient(90deg, rgba(123,124,247,.18), rgba(0,240,255,.12)); border-color:rgba(255,255,255,.16)}
 .nav .icon{width:20px; height:20px; display:inline-grid; place-items:center}
 
@@ -760,6 +761,11 @@ select {
 
     // Mood sync
     $('#moodSelect').value = state.settings.mood;
+
+    // Ensure correct starting state
+    switchPanel('gen');
+    $$('#leftNav button').forEach(x=>x.classList.remove('active'));
+    $('#leftNav button[data-tab="odyssey"]').classList.add('active');
 
     renderLogs(); renderWhispers(); renderOrgasmArchive(); renderSpiral(); renderCharacters();
   }
