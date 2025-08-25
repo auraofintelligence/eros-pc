@@ -92,6 +92,26 @@ body{
 
 .label{font-size:12px; color:var(--muted); margin-bottom:6px}
 .input, select, .textarea{width:100%; padding:12px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.05); color:var(--text)}
+
+/* Fix dropdown styling for dark theme */
+select option {
+  background-color: var(--bg);
+  color: var(--text);
+  border: none;
+  padding: 8px 12px;
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(123,124,247,.18);
+}
+
+/* Ensure select elements have proper contrast */
+select {
+  background-color: var(--bg);
+  color: var(--text);
+}
 .textarea{min-height:96px; resize:vertical}
 .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
 .help{color:var(--muted); font-size:12px}
@@ -125,7 +145,8 @@ body{
 /* Slideouts */
 .slideout{position:fixed; top:64px; bottom:0; right:-380px; width:360px; background:var(--panel); border-left:1px solid rgba(255,255,255,.12); box-shadow:var(--shadow); transition: right .25s ease; z-index:70; overflow:auto}
 .slideout.open{right:0}
-.slideout h3{margin:0; padding:14px}
+.slideout-header{display:flex; align-items:center; justify-content:space-between; padding:14px; border-bottom:1px solid rgba(255,255,255,.08)}
+.slideout-header h3{margin:0}
 .slideout .body{padding:14px; display:grid; gap:12px}
 
 /* Modal */
@@ -160,7 +181,7 @@ body{
     <aside class="sidebar">
       <div class="side-head"><span class="small">Control Scroll</span><span class="small" id="collapseNote"></span></div>
       <nav class="nav" id="leftNav">
-        <button data-tab="node" class="active"><span class="icon">🧿</span><span>Odyssey Map</span></button>
+        <button data-tab="odyssey" class="active"><span class="icon">🌍</span><span>Odyssey Map</span></button>
         <button data-tab="codex"><span class="icon">💃</span><span>Protagonist Codex</span></button>
         <button data-tab="arcs"><span class="icon">🧠</span><span>Narrative Arcs</span></button>
         <button data-tab="seeds"><span class="icon">💼</span><span>Business Seeds</span></button>
@@ -345,13 +366,202 @@ body{
           </div>
         </div>
 
+        <!-- New content panels for sidebar navigation -->
+        <div class="content hide" id="panel-odyssey">
+          <div class="grid cols-2">
+            <div class="card">
+              <h3>🌍 Global Node Profiles</h3>
+              <div class="help">Access to all 256 global node profiles across all countries and cities</div>
+              <div class="row">
+                <input id="nodeSearch" class="input" placeholder="Search by country, city, heroine..." />
+                <select id="nodeFilter" class="input" style="min-width:180px">
+                  <option value="all">All Nodes</option>
+                  <option value="active">Active</option>
+                  <option value="visited">Visited</option>
+                  <option value="seeded">Seeded</option>
+                  <option value="climaxed">Climaxed</option>
+                </select>
+              </div>
+              <div id="globalNodeList" class="grid" style="margin-top:12px"></div>
+            </div>
+            <div class="card">
+              <h3>Quick Node Creation</h3>
+              <div class="help">Rapidly create new story nodes for global locations</div>
+              <div class="grid cols-2">
+                <div>
+                  <div class="label">Country</div>
+                  <input id="quickCountry" class="input" placeholder="Country name" />
+                </div>
+                <div>
+                  <div class="label">City</div>
+                  <input id="quickCity" class="input" placeholder="City name" />
+                </div>
+                <div>
+                  <div class="label">Heroine Name</div>
+                  <input id="quickHeroine" class="input" placeholder="Heroine name" />
+                </div>
+                <div>
+                  <div class="label">Archetype</div>
+                  <select id="quickArchetype"></select>
+                </div>
+              </div>
+              <div class="row right" style="margin-top:12px">
+                <button class="btn primary" id="quickCreateNode">✨ Create Node</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="content hide" id="panel-codex">
+          <div class="grid cols-2">
+            <div class="card">
+              <h3>💃 Protagonist Database</h3>
+              <div class="row">
+                <input id="protagonistSearch" class="input" placeholder="Search protagonists..." />
+                <select id="protagonistFilter" class="input" style="min-width:150px">
+                  <option value="all">All</option>
+                  <option value="solar">Solar</option>
+                  <option value="lunar">Lunar</option>
+                  <option value="tidal">Tidal</option>
+                  <option value="volcanic">Volcanic</option>
+                  <option value="aurora">Aurora</option>
+                </select>
+              </div>
+              <div id="protagonistGrid" class="grid" style="margin-top:12px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:16px;"></div>
+            </div>
+            <div class="card">
+              <h3>Quick Archetype Builder</h3>
+              <div class="help">Build new archetypes: adjective + role + trait</div>
+              <div class="grid cols-2">
+                <div>
+                  <div class="label">Adjective</div>
+                  <input id="archetypeAdj" class="input" placeholder="e.g., Mystical" />
+                </div>
+                <div>
+                  <div class="label">Role</div>
+                  <input id="archetypeRole" class="input" placeholder="e.g., Priestess" />
+                </div>
+                <div>
+                  <div class="label">Trait</div>
+                  <input id="archetypeTrait" class="input" placeholder="e.g., Oracle" />
+                </div>
+                <div>
+                  <div class="label">Generated</div>
+                  <div id="archetypeResult" class="input" style="background:rgba(123,124,247,.1); border-color:var(--accent); font-weight:500; text-align:center;">Mystical Priestess Oracle</div>
+                </div>
+              </div>
+              <div class="row right" style="margin-top:12px">
+                <button class="btn primary" id="saveArchetype">💾 Save Archetype</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="content hide" id="panel-arcs">
+          <div class="grid cols-2">
+            <div class="card">
+              <h3>🧠 Narrative Arc Library</h3>
+              <div class="help">Choose or design story frameworks with erotic-metaphysical significance</div>
+              <div id="arcLibrary" class="grid"></div>
+            </div>
+            <div class="card">
+              <h3>Design New Arc</h3>
+              <div class="grid cols-2">
+                <div>
+                  <div class="label">Arc Name</div>
+                  <input id="newArcName" class="input" placeholder="e.g., The Sacred Union" />
+                </div>
+                <div>
+                  <div class="label">Arc Type</div>
+                  <select id="newArcType">
+                    <option value="erotic">Erotic</option>
+                    <option value="metaphysical">Metaphysical</option>
+                    <option value="hybrid">Hybrid</option>
+                  </select>
+                </div>
+                <div>
+                  <div class="label">Stages</div>
+                  <textarea id="newArcStages" class="textarea" placeholder="Describe the stages of this arc..."></textarea>
+                </div>
+                <div>
+                  <div class="label">Significance</div>
+                  <textarea id="newArcSignificance" class="textarea" placeholder="What makes this arc significant?"></textarea>
+                </div>
+              </div>
+              <div class="row right" style="margin-top:12px">
+                <button class="btn primary" id="saveArc">💾 Save Arc</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="content hide" id="panel-seeds">
+          <div class="grid cols-2">
+            <div class="card">
+              <h3>💼 Business Ventures</h3>
+              <div class="help">Toggle and track which ventures are seeded where</div>
+              <div id="businessVentures" class="grid"></div>
+            </div>
+            <div class="card">
+              <h3>Add New Venture</h3>
+              <div class="grid cols-2">
+                <div>
+                  <div class="label">Venture Name</div>
+                  <input id="newVentureName" class="input" placeholder="e.g., Aura GPT Deployment" />
+                </div>
+                <div>
+                  <div class="label">Type</div>
+                  <select id="newVentureType">
+                    <option value="tech">Tech</option>
+                    <option value="retreat">Retreat</option>
+                    <option value="dao">DAO</option>
+                    <option value="merch">Merchandise</option>
+                    <option value="xr">XR/VR</option>
+                  </select>
+                </div>
+                <div>
+                  <div class="label">Location</div>
+                  <input id="newVentureLocation" class="input" placeholder="Country/City" />
+                </div>
+                <div>
+                  <div class="label">Status</div>
+                  <select id="newVentureStatus">
+                    <option value="concept">Concept</option>
+                    <option value="seeded">Seeded</option>
+                    <option value="growing">Growing</option>
+                    <option value="mature">Mature</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row right" style="margin-top:12px">
+                <button class="btn primary" id="saveVenture">💾 Save Venture</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="content hide" id="panel-metamap">
+          <div class="card">
+            <h3>🗺️ Meta-Map Constellation</h3>
+            <div class="help">View the full multiverse as a constellation of interconnected nodes</div>
+            <div id="constellationView" style="height:60vh; background:radial-gradient(circle at center, rgba(123,124,247,.1), transparent); border-radius:var(--radius); border:1px solid rgba(255,255,255,.12); position:relative; overflow:hidden;">
+              <div id="constellationNodes" style="position:absolute; inset:0; display:grid; place-items:center;">
+                <div class="help">Constellation visualization coming soon...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </section>
     </main>
   </div>
 
   <!-- Slideouts -->
   <aside class="slideout" id="whisper">
-    <h3>Whisper Mode — Safe Deployment Styles</h3>
+    <div class="slideout-header">
+      <h3>Whisper Mode — Safe Deployment Styles</h3>
+      <button class="btn ghost close-slideout" data-slideout="whisper">✕</button>
+    </div>
     <div class="body">
       <div class="help">Country‑specific etiquette & safety notes. Edit or add entries.</div>
       <div id="whisperList" class="grid"></div>
@@ -359,11 +569,17 @@ body{
     </div>
   </aside>
   <aside class="slideout" id="orgasm">
-    <h3>Orgasm Archive — Metaphysical Climax Events</h3>
+    <div class="slideout-header">
+      <h3>Orgasm Archive — Metaphysical Climax Events</h3>
+      <button class="btn ghost close-slideout" data-slideout="orgasm">✕</button>
+    </div>
     <div class="body" id="orgasmList"></div>
   </aside>
   <aside class="slideout" id="spiral">
-    <h3>The Queen Spiral</h3>
+    <div class="slideout-header">
+      <h3>The Queen Spiral</h3>
+      <button class="btn ghost close-slideout" data-slideout="spiral">✕</button>
+    </div>
     <div class="body" id="spiralBody">
       <div class="help">Progression through 500 → 10k → 50k queens. Entries unlock as logs accumulate.</div>
       <div id="spiralList" class="grid"></div>
@@ -488,15 +704,22 @@ body{
     // Tabs
     $$('#tabs .tab').forEach(t=> t.addEventListener('click', ()=> switchPanel(t.dataset.panel)) );
 
-    // Sidebar nav (visual only for now)
+    // Sidebar nav
     $$('#leftNav button').forEach(b=> b.addEventListener('click', ()=>{
-      $$('#leftNav button').forEach(x=>x.classList.remove('active')); b.classList.add('active');
+      $$('#leftNav button').forEach(x=>x.classList.remove('active')); 
+      b.classList.add('active');
+      switchSidebarPanel(b.dataset.tab);
     }));
 
     // Slideouts
     $('#whisperOpen').addEventListener('click', ()=> toggleSlide('whisper', true));
     $('#orgasmOpen').addEventListener('click', ()=> toggleSlide('orgasm', true));
     $('#spiralOpen').addEventListener('click', ()=> toggleSlide('spiral', true));
+    
+    // Close slideout buttons
+    $$('.close-slideout').forEach(btn => {
+      btn.addEventListener('click', ()=> toggleSlide(btn.dataset.slideout, false));
+    });
 
     // Whisper edit
     $('#whisperSave').addEventListener('click', ()=>{
@@ -551,6 +774,24 @@ body{
     $$('#tabs .tab').forEach(t=> t.classList.toggle('active', t.dataset.panel===key));
     ['gen','logs','map','characters'].forEach(k=> $('#panel-'+k).classList.toggle('hide', k!==key));
     if(key==='map'){ setTimeout(()=> map.invalidateSize(), 200); }
+  }
+
+  function switchSidebarPanel(key){
+    // Hide all main content panels
+    ['gen','logs','map','characters'].forEach(k=> $('#panel-'+k).classList.add('hide'));
+    // Hide all sidebar panels
+    ['odyssey','codex','arcs','seeds','metamap'].forEach(k=> $('#panel-'+k).classList.add('hide'));
+    // Show the selected sidebar panel
+    $('#panel-'+key).classList.remove('hide');
+    
+    // Update tab states
+    $$('#tabs .tab').forEach(t=> t.classList.remove('active'));
+    
+    // Special handling for specific panels
+    if(key==='odyssey') renderGlobalNodes();
+    if(key==='codex') renderProtagonistGrid();
+    if(key==='arcs') renderArcLibrary();
+    if(key==='seeds') renderBusinessVentures();
   }
 
   /* =========================
@@ -759,8 +1000,159 @@ body{
 
   function openSettings(){ $('#aboutModal').classList.add('open'); $('#userName').value=state.settings.name; $('#startDate').value=state.settings.startDate; $('#moodSelect').value=state.settings.mood; }
 
+  /* =========================
+     SIDEBAR PANEL FUNCTIONS
+  ==========================*/
+  
+  function renderGlobalNodes(){
+    const el = $('#globalNodeList'); el.innerHTML='';
+    const search = $('#nodeSearch').value.toLowerCase();
+    const filter = $('#nodeFilter').value;
+    
+    state.logs.filter(l => {
+      const matchesSearch = !search || [l.heroine, l.city, l.country].some(x => (x||'').toLowerCase().includes(search));
+      const matchesFilter = filter === 'all' || 
+        (filter === 'active' && l.status === 'active') ||
+        (filter === 'visited' && l.flags.visited) ||
+        (filter === 'seeded' && l.flags.seeded) ||
+        (filter === 'climaxed' && l.flags.climaxed);
+      return matchesSearch && matchesFilter;
+    }).forEach(l => {
+      const div = document.createElement('div'); div.className='item';
+      div.innerHTML = `
+        <div>
+          <b>${l.heroine}</b> — ${l.city||'—'}, ${l.country||'—'}
+          <div class="meta">${l.archetype} • ${l.arc} → ${l.outcome}</div>
+        </div>
+        <div class="row">
+          ${l.flags.climaxed ? '<span style="color:var(--accent-3)">🔥</span>' : ''}
+          ${l.flags.seeded ? '<span style="color:var(--accent-2)">💎</span>' : ''}
+          ${l.flags.visited ? '<span style="color:var(--accent)">📍</span>' : ''}
+        </div>
+      `;
+      el.append(div);
+    });
+  }
+
+  function renderProtagonistGrid(){
+    const el = $('#protagonistGrid'); el.innerHTML='';
+    const search = $('#protagonistSearch').value.toLowerCase();
+    const filter = $('#protagonistFilter').value;
+    
+    state.characters.filter(c => {
+      const matchesSearch = !search || [c.name, c.culture, c.archetype].some(x => (x||'').toLowerCase().includes(search));
+      const matchesFilter = filter === 'all' || c.energy.toLowerCase() === filter;
+      return matchesSearch && matchesFilter;
+    }).forEach(c => {
+      const div = document.createElement('div'); div.className='card';
+      div.innerHTML = `
+        <div style="text-align:center; margin-bottom:12px;">
+          <div style="width:80px; height:80px; border-radius:50%; background:linear-gradient(45deg, var(--accent), var(--accent-2)); margin:0 auto; display:grid; place-items:center; font-size:24px;">💃</div>
+        </div>
+        <h4 style="margin:0 0 8px 0; text-align:center;">${c.name}</h4>
+        <div style="text-align:center; margin-bottom:12px;">
+          <span style="background:rgba(123,124,247,.2); padding:4px 8px; border-radius:6px; font-size:12px;">${c.energy}</span>
+        </div>
+        <div style="font-size:12px; color:var(--muted); margin-bottom:8px;">
+          <strong>Culture:</strong> ${c.culture || '—'}<br>
+          <strong>Archetype:</strong> ${c.archetype || '—'}<br>
+          <strong>Traits:</strong> ${c.dna || '—'}
+        </div>
+        <div class="row" style="justify-content:center; gap:8px;">
+          <button class="btn small" onclick="editCharacter('${c.id}')">Edit</button>
+          <button class="btn small" onclick="characterToPrompt('${c.id}')">Prompt</button>
+        </div>
+      `;
+      el.append(div);
+    });
+  }
+
+  function renderArcLibrary(){
+    const el = $('#arcLibrary'); el.innerHTML='';
+    state.lists.arcs.forEach(arc => {
+      const div = document.createElement('div'); div.className='card';
+      div.innerHTML = `
+        <h4 style="margin:0 0 8px 0;">${arc}</h4>
+        <div class="help">Erotic-metaphysical narrative framework</div>
+        <div class="row right" style="margin-top:8px;">
+          <button class="btn small" onclick="useArc('${arc}')">Use Arc</button>
+        </div>
+      `;
+      el.append(div);
+    });
+  }
+
+  function renderBusinessVentures(){
+    const el = $('#businessVentures'); el.innerHTML='';
+    // This would render from state.businessVentures when implemented
+    el.innerHTML = '<div class="help">Business ventures tracking coming soon...</div>';
+  }
+
+  // Event handlers for new functionality
+  $('#nodeSearch')?.addEventListener('input', renderGlobalNodes);
+  $('#nodeFilter')?.addEventListener('change', renderGlobalNodes);
+  $('#protagonistSearch')?.addEventListener('input', renderProtagonistGrid);
+  $('#protagonistFilter')?.addEventListener('change', renderProtagonistGrid);
+  
+  // Archetype builder
+  ['#archetypeAdj', '#archetypeRole', '#archetypeTrait'].forEach(sel => {
+    $(sel)?.addEventListener('input', () => {
+      const adj = $('#archetypeAdj').value || '';
+      const role = $('#archetypeRole').value || '';
+      const trait = $('#archetypeTrait').value || '';
+      $('#archetypeResult').textContent = [adj, role, trait].filter(Boolean).join(' ');
+    });
+  });
+
+  $('#saveArchetype')?.addEventListener('click', () => {
+    const archetype = $('#archetypeResult').textContent;
+    if(archetype && archetype !== 'Mystical Priestess Oracle') {
+      if(!state.lists.charArchetypes.includes(archetype)) {
+        state.lists.charArchetypes.push(archetype);
+        save();
+        fillSelect('#charArchetype', state.lists.charArchetypes);
+        alert('Archetype saved!');
+      }
+    }
+  });
+
+  // Quick node creation
+  $('#quickCreateNode')?.addEventListener('click', () => {
+    const node = {
+      id: uid(),
+      ts: Date.now(),
+      heroine: $('#quickHeroine').value.trim(),
+      archetype: $('#quickArchetype').value,
+      country: $('#quickCountry').value.trim(),
+      city: $('#quickCity').value.trim(),
+      relationship: 'one-night rite',
+      initiative: 'retreat',
+      arc: 'Call to Ecstasy',
+      outcome: 'Opens sanctuary',
+      consent: true,
+      ripple: 1,
+      status: 'active',
+      flags: {visited: false, seeded: false, climaxed: false},
+      notes: 'Quick-created node'
+    };
+    if(!node.heroine || !node.country) { alert('Heroine name and country required'); return; }
+    state.logs.unshift(node); save();
+    $('#activeNodes').textContent = state.logs.filter(x=>x.status!=='retired').length;
+    renderGlobalNodes();
+    pushMarker(node);
+    alert('Node created!');
+  });
+
+  // Initialize quick archetype select
+  function initQuickArchetype() {
+    if($('#quickArchetype')) {
+      fillSelect('#quickArchetype', state.lists.archetypes);
+    }
+  }
+
   // Boot
   init();
+  initQuickArchetype();
   </script>
 </body>
 </html>
