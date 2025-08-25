@@ -182,7 +182,8 @@ select {
     <aside class="sidebar">
       <div class="side-head"><span class="small">Control Scroll</span><span class="small" id="collapseNote"></span></div>
       <nav class="nav" id="leftNav">
-        <button data-tab="odyssey" class="active"><span class="icon">🌍</span><span>Odyssey Map</span></button>
+        <button data-tab="main"><span class="icon">🏠</span><span>Main Content</span></button>
+        <button data-tab="odyssey"><span class="icon">🌍</span><span>Odyssey Map</span></button>
         <button data-tab="codex"><span class="icon">💃</span><span>Protagonist Codex</span></button>
         <button data-tab="arcs"><span class="icon">🧠</span><span>Narrative Arcs</span></button>
         <button data-tab="seeds"><span class="icon">💼</span><span>Business Seeds</span></button>
@@ -762,10 +763,10 @@ select {
     // Mood sync
     $('#moodSelect').value = state.settings.mood;
 
-    // Ensure correct starting state
+    // Ensure correct starting state - start with main content
     switchPanel('gen');
     $$('#leftNav button').forEach(x=>x.classList.remove('active'));
-    $('#leftNav button[data-tab="odyssey"]').classList.add('active');
+    $('#leftNav button[data-tab="main"]').classList.add('active');
 
     renderLogs(); renderWhispers(); renderOrgasmArchive(); renderSpiral(); renderCharacters();
   }
@@ -783,6 +784,12 @@ select {
   }
 
   function switchSidebarPanel(key){
+    if(key === 'main') {
+      // Return to main content
+      returnToMainContent();
+      return;
+    }
+    
     // Hide all main content panels
     ['gen','logs','map','characters'].forEach(k=> $('#panel-'+k).classList.add('hide'));
     // Hide all sidebar panels
@@ -790,7 +797,7 @@ select {
     // Show the selected sidebar panel
     $('#panel-'+key).classList.remove('hide');
     
-    // Update tab states
+    // Update tab states - when on sidebar panels, no main tabs should be active
     $$('#tabs .tab').forEach(t=> t.classList.remove('active'));
     
     // Special handling for specific panels
@@ -798,6 +805,16 @@ select {
     if(key==='codex') renderProtagonistGrid();
     if(key==='arcs') renderArcLibrary();
     if(key==='seeds') renderBusinessVentures();
+  }
+
+  function returnToMainContent(){
+    // Hide all sidebar panels
+    ['odyssey','codex','arcs','seeds','metamap'].forEach(k=> $('#panel-'+k).classList.add('hide'));
+    // Show main content (default to gen panel)
+    switchPanel('gen');
+    // Update sidebar state - highlight main content button
+    $$('#leftNav button').forEach(x=>x.classList.remove('active'));
+    $('#leftNav button[data-tab="main"]').classList.add('active');
   }
 
   /* =========================
