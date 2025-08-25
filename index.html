@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>The Straddie Protocol World‑Builder Interface</title>
+<link rel="preconnect" href="https://unpkg.com" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<style>
+/* ============ CSS VARIABLES (Neon Opal Aesthetic) ============ */
+:root{
+  --bg:#0b0d12;             /* base space */
+  --panel:#0f1320cc;         /* translucent panels */
+  --text:#e6f1ff;            /* primary text */
+  --muted:#9db0d0;           /* secondary text */
+  --accent:#7b7cf7;          /* violet */
+  --accent-2:#00f0ff;        /* aqua */
+  --accent-3:#ff54d6;        /* magenta */
+  --ok:#38f08f;              /* success */
+  --warn:#ffb020;            /* warning */
+  --danger:#ff5f5f;          /* danger */
+  --shadow:0 10px 30px rgba(0,0,0,.35);
+  --radius:18px;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:radial-gradient(1100px 700px at 70% -10%, rgba(123,124,247,.15), transparent 60%),
+                 radial-gradient(900px 600px at -10% 90%, rgba(0,240,255,.09), transparent 60%),
+                 var(--bg);
+  color:var(--text); font:500 15px/1.4 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial;
+  overflow:hidden;
+}
+
+/* ======= HALO STRIP ======= */
+.header{
+  position:fixed; top:0; left:0; right:0; height:64px; z-index:60; display:flex; align-items:center; gap:10px; padding:0 14px;
+  background:linear-gradient(120deg, rgba(123,124,247,.18), rgba(0,240,255,.12), rgba(255,84,214,.10));
+  backdrop-filter: blur(10px);
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.logo{
+  width:40px; height:40px; border-radius:50%; position:relative; display:grid; place-items:center; cursor:pointer;
+  background:radial-gradient(circle at 50% 50%, rgba(255,255,255,.25), rgba(255,255,255,.08));
+  box-shadow:0 0 12px rgba(123,124,247,.45), inset 0 0 8px rgba(255,255,255,.25);
+}
+.logo::after{content:""; position:absolute; inset:-2px; border-radius:50%; border:2px solid rgba(0,240,255,.25); filter:blur(1px)}
+.title{font-weight:700; letter-spacing:.2px}
+.header .spacer{flex:1}
+
+.badge{display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08)}
+.badge small{opacity:.85}
+
+/* Aura Mood Clock */
+.mood{position:relative; width:38px; height:38px; border-radius:50%; overflow:hidden; cursor:pointer; border:1px solid rgba(255,255,255,.12)}
+.mood .core{position:absolute; inset:0; background:conic-gradient(from 0deg, var(--accent), var(--accent-2), var(--accent-3), var(--accent)); animation:spin 12s linear infinite}
+.mood.focus .core{animation-duration:18s}
+.mood.ecstasy .core{animation-duration:6s}
+.mood.strategy .core{animation-duration:14s}
+.mood.integration .core{animation-duration:20s}
+.mood .mask{position:absolute; inset:4px; border-radius:50%; background:var(--bg)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ======= LAYOUT ======= */
+.app{position:absolute; inset:64px 0 0 0; display:grid; grid-template-columns: 64px 1fr; grid-template-rows: 1fr; gap:0}
+@media(min-width:980px){.app{grid-template-columns: 280px 1fr}}
+
+/* Sidebar Control Scroll */
+.sidebar{position:relative; background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border-right:1px solid rgba(255,255,255,.08); overflow:auto}
+.sidebar .sec{padding:12px}
+.side-head{display:flex; align-items:center; justify-content:space-between; padding:14px 12px; color:var(--muted)}
+.nav{display:grid; gap:8px; padding:8px 10px}
+.nav button{display:flex; align-items:center; gap:10px; width:100%; padding:12px 12px; border-radius:12px; color:var(--text); background:transparent; border:1px solid rgba(255,255,255,.08); cursor:pointer}
+.nav button.active{background:linear-gradient(90deg, rgba(123,124,247,.18), rgba(0,240,255,.12)); border-color:rgba(255,255,255,.16)}
+.nav .icon{width:20px; height:20px; display:inline-grid; place-items:center}
+
+/* Main Panel */
+.main{position:relative; overflow:hidden}
+.panel{position:absolute; inset:0; display:flex; flex-direction:column}
+.toolbar{display:flex; gap:8px; padding:10px; background:rgba(255,255,255,.04); border-bottom:1px solid rgba(255,255,255,.08)}
+.tabs{display:flex; gap:8px; overflow:auto; padding:6px}
+.tab{padding:10px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03); cursor:pointer; white-space:nowrap}
+.tab.active{background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); border-color:rgba(255,255,255,.16)}
+.content{flex:1; overflow:auto; padding:14px}
+
+.card{background:var(--panel); border:1px solid rgba(255,255,255,.08); border-radius:var(--radius); box-shadow:var(--shadow); padding:14px}
+.grid{display:grid; gap:12px}
+.grid.cols-2{grid-template-columns:1fr}
+@media(min-width:800px){.grid.cols-2{grid-template-columns:1fr 1fr}}
+
+.label{font-size:12px; color:var(--muted); margin-bottom:6px}
+.input, select, .textarea{width:100%; padding:12px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.05); color:var(--text)}
+.textarea{min-height:96px; resize:vertical}
+.row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+.help{color:var(--muted); font-size:12px}
+
+.btn{display:inline-flex; align-items:center; gap:10px; padding:10px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); color:var(--text); cursor:pointer}
+.btn.primary{background:linear-gradient(90deg, rgba(123,124,247,.45), rgba(0,240,255,.35)); border-color:rgba(255,255,255,.22)}
+.btn.ghost{background:transparent}
+.btn.warn{background:rgba(255,176,32,.2); border-color:rgba(255,176,32,.35)}
+.btn.danger{background:rgba(255,95,95,.2); border-color:rgba(255,95,95,.35)}
+
+/* Neon ripple hover */
+.btn:hover, .nav button:hover, .tab:hover{box-shadow:0 0 0 3px rgba(123,124,247,.18), 0 0 0 6px rgba(0,240,255,.12)}
+
+.switch{position:relative; width:50px; height:28px; background:rgba(255,255,255,.15); border-radius:14px; border:1px solid rgba(255,255,255,.18); cursor:pointer}
+.switch::after{content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:linear-gradient(180deg,#fff,#cde); transition:.2s}
+.switch.on{background:linear-gradient(90deg, rgba(56,240,143,.45), rgba(0,240,255,.35))}
+.switch.on::after{left:25px}
+
+/* List items */
+.item{display:grid; grid-template-columns: 1fr auto; gap:8px; padding:10px; border:1px dashed rgba(255,255,255,.16); border-radius:12px}
+.meta{color:var(--muted); font-size:12px}
+
+/* Map container */
+#map{height: 60vh; border-radius:var(--radius); border:1px solid rgba(255,255,255,.12)}
+
+/* FAB */
+.fab{position:fixed; right:16px; bottom:18px; width:58px; height:58px; border-radius:50%; display:grid; place-items:center; z-index:80; cursor:pointer;
+     background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.35), rgba(255,255,255,.10)); border:1px solid rgba(255,255,255,.25); box-shadow:0 8px 30px rgba(0,0,0,.35)}
+.fab:hover{box-shadow:0 0 0 3px rgba(123,124,247,.18), 0 0 0 6px rgba(0,240,255,.12)}
+
+/* Slideouts */
+.slideout{position:fixed; top:64px; bottom:0; right:-380px; width:360px; background:var(--panel); border-left:1px solid rgba(255,255,255,.12); box-shadow:var(--shadow); transition: right .25s ease; z-index:70; overflow:auto}
+.slideout.open{right:0}
+.slideout h3{margin:0; padding:14px}
+.slideout .body{padding:14px; display:grid; gap:12px}
+
+/* Modal */
+.modal{position:fixed; inset:0; backdrop-filter: blur(8px); background:rgba(0,0,0,.35); display:none; z-index:90; align-items:center; justify-content:center}
+.modal.open{display:flex}
+.modal .sheet{width:min(920px,92vw); max-height:84vh; overflow:auto; background:var(--panel); border:1px solid rgba(255,255,255,.12); border-radius:18px; padding:16px; box-shadow:var(--shadow)}
+
+.kbd{padding:2px 6px; border:1px solid rgba(255,255,255,.2); border-radius:6px; background:rgba(255,255,255,.06); font-size:12px}
+
+/* Utility */
+.hide{display:none}
+.right{margin-left:auto}
+.small{font-size:12px}
+</style>
+</head>
+<body>
+  <!-- ===================== HALO STRIP ===================== -->
+  <header class="header">
+    <div class="logo" id="aboutBtn" title="About / Settings / Global Vision">⚛︎</div>
+    <div class="title">Straddie Protocol World‑Builder</div>
+    <span class="badge" id="yearBadge">Year: <b id="odysseyYear">—</b></span>
+    <span class="badge">Active Nodes: <b id="activeNodes">0</b></span>
+    <div class="mood focus" id="moodClock" title="Aura Mood Clock">
+      <div class="core"></div><div class="mask"></div>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" id="exportBtn">⬇ Export</button>
+  </header>
+
+  <!-- ===================== APP LAYOUT ===================== -->
+  <div class="app">
+    <aside class="sidebar">
+      <div class="side-head"><span class="small">Control Scroll</span><span class="small" id="collapseNote"></span></div>
+      <nav class="nav" id="leftNav">
+        <button data-tab="node" class="active"><span class="icon">🧿</span><span>Odyssey Map</span></button>
+        <button data-tab="codex"><span class="icon">💃</span><span>Protagonist Codex</span></button>
+        <button data-tab="arcs"><span class="icon">🧠</span><span>Narrative Arcs</span></button>
+        <button data-tab="seeds"><span class="icon">💼</span><span>Business Seeds</span></button>
+        <button data-tab="metamap"><span class="icon">🗺️</span><span>Meta‑Map</span></button>
+      </nav>
+      <div class="sec">
+        <div class="help">Tip: Use <span class="kbd">/</span> to quick‑search; tap the <b>+</b> orb to add options anywhere.</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="panel">
+        <div class="toolbar">
+          <div class="tabs" id="tabs">
+            <button class="tab active" data-panel="gen">Generate Story Node</button>
+            <button class="tab" data-panel="logs">Past Logs + Playback</button>
+            <button class="tab" data-panel="map">Live Map Interface</button>
+            <button class="tab" data-panel="characters">Character Weaving Chamber</button>
+          </div>
+          <div class="right row">
+            <button class="btn ghost" id="whisperOpen">🔍 Whisper</button>
+            <button class="btn ghost" id="orgasmOpen">💋 Archive</button>
+            <button class="btn ghost" id="spiralOpen">🌀 Queen Spiral</button>
+          </div>
+        </div>
+
+        <div class="content" id="panel-gen">
+          <div class="grid cols-2">
+            <div class="card">
+              <div class="row" style="justify-content:space-between"><h3>Story Node</h3><div class="help">Saved to Memory Archive + Logs</div></div>
+              <div class="grid cols-2">
+                <div>
+                  <div class="label">Heroine Name</div>
+                  <input id="heroine" class="input" placeholder="e.g., Aisha of the Northern Lights" />
+                </div>
+                <div>
+                  <div class="label">Archetype <button class="btn small" data-add="archetypes">＋</button></div>
+                  <select id="archetype"></select>
+                </div>
+                <div>
+                  <div class="label">Country <button class="btn small" data-add="countries">＋</button></div>
+                  <input list="countryList" id="country" class="input" placeholder="Start typing…" />
+                  <datalist id="countryList"></datalist>
+                </div>
+                <div>
+                  <div class="label">City</div>
+                  <input id="city" class="input" placeholder="City / Town / Island" />
+                </div>
+                <div>
+                  <div class="label">Relationship Type <button class="btn small" data-add="relationships">＋</button></div>
+                  <select id="relationship"></select>
+                </div>
+                <div>
+                  <div class="label">Business Initiative <button class="btn small" data-add="initiatives">＋</button></div>
+                  <select id="initiative"></select>
+                </div>
+                <div>
+                  <div class="label">Narrative Arc <button class="btn small" data-add="arcs">＋</button></div>
+                  <select id="arc"></select>
+                </div>
+                <div>
+                  <div class="label">Outcome <button class="btn small" data-add="outcomes">＋</button></div>
+                  <select id="outcome"></select>
+                </div>
+                <div class="row">
+                  <div class="label">Consent (culturally‑aware)</div>
+                  <div id="consent" class="switch on" role="switch" aria-checked="true" tabindex="0" title="Toggle consent"></div>
+                </div>
+                <div class="row">
+                  <button class="btn" id="pickMap">📍 Pick on Map</button>
+                  <input id="lat" class="input" placeholder="Lat" style="max-width:140px" />
+                  <input id="lng" class="input" placeholder="Lng" style="max-width:140px" />
+                </div>
+                <div>
+                  <div class="label">Private Notes</div>
+                  <textarea id="notes" class="textarea" placeholder="Context, safety, rituals, boundaries…"></textarea>
+                </div>
+              </div>
+              <div class="row" style="justify-content:space-between; margin-top:10px">
+                <div class="help">Ripple = qualitative impact score you can edit later.</div>
+                <div class="row">
+                  <button class="btn" id="draftNext">✨ Auto‑draft Next</button>
+                  <button class="btn primary" id="saveNode">💾 Save Node</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>LLM Prompt Package</h3>
+              <div class="help">Generates a self‑contained prompt for your narrative engine (kept local — no calls made).</div>
+              <textarea id="promptOut" class="textarea" placeholder="Generated prompt appears here…"></textarea>
+              <div class="row right">
+                <button class="btn" id="buildPrompt">📦 Build Prompt</button>
+                <button class="btn" id="copyPrompt">📋 Copy</button>
+              </div>
+              <hr style="border-color:rgba(255,255,255,.08)">
+              <h3>Quick Export</h3>
+              <div class="row">
+                <button class="btn" data-export="txt">TXT</button>
+                <button class="btn" data-export="json">JSON</button>
+                <button class="btn" data-export="csv">CSV</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="content hide" id="panel-logs">
+          <div class="card">
+            <div class="row" style="justify-content:space-between"><h3>Past Logs</h3>
+              <div class="row">
+                <input id="logSearch" class="input" placeholder="Search heroine / city / country / arc…" style="min-width:220px" />
+                <select id="logFilter" class="input" style="min-width:180px"></select>
+              </div>
+            </div>
+            <div id="logList" class="grid" style="margin-top:10px"></div>
+          </div>
+        </div>
+
+        <div class="content hide" id="panel-map">
+          <div class="grid">
+            <div class="card">
+              <div class="row" style="justify-content:space-between"><h3>Live Map</h3>
+                <div class="row">
+                  <button class="btn" id="mapVisited">Mark Visited</button>
+                  <button class="btn" id="mapSeeded">Mark Seeded</button>
+                  <button class="btn" id="mapClimaxed">Mark Climaxed</button>
+                </div>
+              </div>
+              <div id="map"></div>
+              <div class="help" style="margin-top:8px">Tap the map to set coords while in “Pick” mode; tap markers to open entries.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="content hide" id="panel-characters">
+          <div class="grid cols-2">
+            <div class="card">
+              <h3>Design Protagonist</h3>
+              <div class="grid cols-2">
+                <div>
+                  <div class="label">Name</div>
+                  <input id="charName" class="input" />
+                </div>
+                <div>
+                  <div class="label">Energy Type</div>
+                  <select id="charEnergy"></select>
+                </div>
+                <div>
+                  <div class="label">Culture / Coding</div>
+                  <input id="charCulture" class="input" placeholder="e.g., Punjabi Futurist" />
+                </div>
+                <div>
+                  <div class="label">Sexual Archetype <button class="btn small" data-add="charArchetypes">＋</button></div>
+                  <select id="charArchetype"></select>
+                </div>
+                <div>
+                  <div class="label">Kinks (comma‑sep)</div>
+                  <input id="charKinks" class="input" />
+                </div>
+                <div>
+                  <div class="label">Traumas (care tags)</div>
+                  <input id="charTraumas" class="input" placeholder="for safety planning" />
+                </div>
+                <div>
+                  <div class="label">DNA / Mystical Traits</div>
+                  <input id="charDNA" class="input" />
+                </div>
+                <div>
+                  <div class="label">Notes</div>
+                  <textarea id="charNotes" class="textarea"></textarea>
+                </div>
+              </div>
+              <div class="row right">
+                <button class="btn" id="charToPrompt">🧾 Export to LLM Prompt</button>
+                <button class="btn primary" id="saveCharacter">💾 Save</button>
+              </div>
+            </div>
+            <div class="card">
+              <h3>Codex</h3>
+              <div id="charList" class="grid"></div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <!-- Slideouts -->
+  <aside class="slideout" id="whisper">
+    <h3>Whisper Mode — Safe Deployment Styles</h3>
+    <div class="body">
+      <div class="help">Country‑specific etiquette & safety notes. Edit or add entries.</div>
+      <div id="whisperList" class="grid"></div>
+      <div class="row"><input id="whisperCountry" class="input" placeholder="Country" /><input id="whisperNote" class="input" placeholder="Add / update note" /><button class="btn" id="whisperSave">Save</button></div>
+    </div>
+  </aside>
+  <aside class="slideout" id="orgasm">
+    <h3>Orgasm Archive — Metaphysical Climax Events</h3>
+    <div class="body" id="orgasmList"></div>
+  </aside>
+  <aside class="slideout" id="spiral">
+    <h3>The Queen Spiral</h3>
+    <div class="body" id="spiralBody">
+      <div class="help">Progression through 500 → 10k → 50k queens. Entries unlock as logs accumulate.</div>
+      <div id="spiralList" class="grid"></div>
+    </div>
+  </aside>
+
+  <!-- FAB quick‑add -->
+  <button class="fab" id="fab" title="Add anything, anywhere">＋</button>
+
+  <!-- Modal: About & Settings -->
+  <div class="modal" id="aboutModal">
+    <div class="sheet">
+      <div class="row" style="justify-content:space-between"><h3>About • Settings • Global Vision</h3>
+        <button class="btn" id="closeAbout">✕</button></div>
+      <div class="grid cols-2">
+        <div class="card">
+          <h3>Odyssey Settings</h3>
+          <div class="label">Your Name</div>
+          <input id="userName" class="input" placeholder="Luke Catalyst" />
+          <div class="label" style="margin-top:10px">Start Date (Year 1 begins)</div>
+          <input id="startDate" type="date" class="input" />
+          <div class="label" style="margin-top:10px">Mood</div>
+          <select id="moodSelect" class="input">
+            <option value="focus">Focus</option>
+            <option value="ecstasy">Ecstasy</option>
+            <option value="strategy">Strategy</option>
+            <option value="integration">Integration</option>
+          </select>
+          <div class="row" style="margin-top:12px"><button class="btn primary" id="saveSettings">Save Settings</button></div>
+        </div>
+        <div class="card">
+          <h3>Exports & Backups</h3>
+          <div class="help">Local only. Use Export menu to download backups.</div>
+          <div class="row">
+            <button class="btn" id="backupAll">⬇ Download All (JSON)</button>
+            <button class="btn warn" id="importAll">⬆ Import JSON</button>
+            <input type="file" id="importFile" class="hide" accept="application/json" />
+          </div>
+          <hr style="border-color:rgba(255,255,255,.08)">
+          <h3>Danger Zone</h3>
+          <button class="btn danger" id="wipeAll">🧨 Erase Local Data</button>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <h3>Global Vision</h3>
+        <div class="help">An elite, mobile‑first console: part GitHub, part tantric gameboard, part AI missionary playground. Designed for export‑first workflows and future LLM pipeline integration (no network calls today).</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+  /* =========================
+     STATE & UTILITIES
+  ==========================*/
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => Array.from(document.querySelectorAll(sel));
+  const storeKey = 'sp_state_v1';
+  const def = {
+    settings:{ name:'Luke Catalyst', startDate: new Date().toISOString().slice(0,10), mood:'focus' },
+    lists:{
+      archetypes:['Sage','Siren','Healer','Warrior','Explorer'],
+      relationships:['one-night rite','recurring priestess','future wife','AI twin'],
+      initiatives:['merch','DAO','XR','retreat','Aura GPT deployment'],
+      arcs:['Call to Ecstasy','Trial by Fire','Sacred Union','Integration Spiral'],
+      outcomes:['Unlocks Queen 307','Publishes erotic novella','Launches Crypto‑LoveCoin','Opens sanctuary'],
+      energies:['Solar','Lunar','Tidal','Volcanic','Aurora'],
+      charArchetypes:['Muse','Trickster','Empress','Witch','Oracle'],
+      countries:['Australia','India','Japan','United States','Brazil','France','Indonesia','Kenya','Qatar','Nepal']
+    },
+    whispers:{'India':'Respect local norms; consent is verbal + contextual. Prioritise privacy and temple etiquette.', 'Japan':'Subtlety over spectacle. Private spaces; avoid PDA; ritualised gifting builds trust.'},
+    logs:[],
+    characters:[]
+  };
+  let state = load();
+
+  function load(){ try{ return Object.assign({}, def, JSON.parse(localStorage.getItem(storeKey)||'{}')); }catch(e){ return structuredClone(def); } }
+  function save(){ localStorage.setItem(storeKey, JSON.stringify(state)); }
+  function uid(){ return Math.random().toString(36).slice(2,10); }
+  function fmtDate(ts){ const d=new Date(ts); return d.toLocaleString(); }
+
+  function computeOdysseyYear(){
+    const start = new Date(state.settings.startDate || new Date());
+    const now = new Date();
+    const ms = now - start; const years = ms / (365.2425*24*3600*1000);
+    return Math.max(1, Math.floor(years)+1);
+  }
+
+  /* =========================
+     INIT UI
+  ==========================*/
+  function init(){
+    // Header
+    $('#odysseyYear').textContent = computeOdysseyYear();
+    $('#activeNodes').textContent = state.logs.filter(x=>x.status!=='retired').length;
+    $('#moodClock').className = 'mood '+(state.settings.mood||'focus');
+
+    // Lists
+    fillSelect('#archetype', state.lists.archetypes);
+    fillSelect('#relationship', state.lists.relationships);
+    fillSelect('#initiative', state.lists.initiatives);
+    fillSelect('#arc', state.lists.arcs);
+    fillSelect('#outcome', state.lists.outcomes);
+    fillSelect('#charEnergy', state.lists.energies);
+    fillSelect('#charArchetype', state.lists.charArchetypes);
+    fillDataList('#countryList', state.lists.countries);
+
+    // Filters
+    const f = $('#logFilter'); f.innerHTML=''; ['All','Active','Retired','Visited','Seeded','Climaxed'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; f.appendChild(o); });
+
+    // Events
+    $('#consent').addEventListener('click', ()=> $('#consent').classList.toggle('on'));
+    $('#consent').addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); $('#consent').click(); }});
+
+    $('#saveNode').addEventListener('click', saveNode);
+    $('#draftNext').addEventListener('click', draftNext);
+    $('#buildPrompt').addEventListener('click', buildPrompt);
+    $('#copyPrompt').addEventListener('click', ()=>{ navigator.clipboard.writeText($('#promptOut').value||''); });
+
+    $$('#panel-gen [data-export]').forEach(b=> b.addEventListener('click', ()=> doExport(b.dataset.export)) );
+
+    // Tabs
+    $$('#tabs .tab').forEach(t=> t.addEventListener('click', ()=> switchPanel(t.dataset.panel)) );
+
+    // Sidebar nav (visual only for now)
+    $$('#leftNav button').forEach(b=> b.addEventListener('click', ()=>{
+      $$('#leftNav button').forEach(x=>x.classList.remove('active')); b.classList.add('active');
+    }));
+
+    // Slideouts
+    $('#whisperOpen').addEventListener('click', ()=> toggleSlide('whisper', true));
+    $('#orgasmOpen').addEventListener('click', ()=> toggleSlide('orgasm', true));
+    $('#spiralOpen').addEventListener('click', ()=> toggleSlide('spiral', true));
+
+    // Whisper edit
+    $('#whisperSave').addEventListener('click', ()=>{
+      const c=$('#whisperCountry').value.trim(); const n=$('#whisperNote').value.trim(); if(!c||!n) return;
+      state.whispers[c]=n; save(); renderWhispers(); $('#whisperCountry').value=''; $('#whisperNote').value='';
+    });
+
+    // Search Logs
+    $('#logSearch').addEventListener('input', renderLogs);
+    $('#logFilter').addEventListener('change', renderLogs);
+
+    // Settings modal
+    $('#aboutBtn').addEventListener('click', openSettings);
+    $('#closeAbout').addEventListener('click', ()=> $('#aboutModal').classList.remove('open'));
+    $('#saveSettings').addEventListener('click', ()=>{
+      state.settings.name = $('#userName').value.trim()||state.settings.name;
+      state.settings.startDate = $('#startDate').value || state.settings.startDate;
+      state.settings.mood = $('#moodSelect').value;
+      save(); init(); $('#aboutModal').classList.remove('open');
+    });
+
+    $('#backupAll').addEventListener('click', ()=> download('sp_backup.json', JSON.stringify(state,null,2)) );
+    $('#importAll').addEventListener('click', ()=> $('#importFile').click());
+    $('#importFile').addEventListener('change', async (e)=>{
+      const f=e.target.files[0]; if(!f) return; const txt=await f.text(); try{ const data=JSON.parse(txt); state=data; save(); location.reload(); }catch(err){ alert('Invalid JSON'); }
+    });
+    $('#wipeAll').addEventListener('click', ()=>{ if(confirm('Erase all local data?')){ localStorage.removeItem(storeKey); location.reload(); }});
+
+    // Add buttons & FAB
+    $$('#panel-gen [data-add], #panel-characters [data-add]').forEach(b=> b.addEventListener('click', ()=> quickAdd(b.dataset.add)) );
+    $('#fab').addEventListener('click', ()=> quickAdd());
+
+    // Map
+    setupMap();
+
+    // Exports menu
+    $('#exportBtn').addEventListener('click', openExportMenu);
+
+    // Mood sync
+    $('#moodSelect').value = state.settings.mood;
+
+    renderLogs(); renderWhispers(); renderOrgasmArchive(); renderSpiral(); renderCharacters();
+  }
+
+  function fillSelect(sel, list){ const el=$(sel); el.innerHTML=''; list.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; el.appendChild(o); }); }
+  function fillDataList(sel, list){ const el=$(sel); el.innerHTML=''; list.forEach(v=>{ const o=document.createElement('option'); o.value=v; el.appendChild(o); }); }
+
+  /* =========================
+     PANELS
+  ==========================*/
+  function switchPanel(key){
+    $$('#tabs .tab').forEach(t=> t.classList.toggle('active', t.dataset.panel===key));
+    ['gen','logs','map','characters'].forEach(k=> $('#panel-'+k).classList.toggle('hide', k!==key));
+    if(key==='map'){ setTimeout(()=> map.invalidateSize(), 200); }
+  }
+
+  /* =========================
+     SAVE NODE
+  ==========================*/
+  function getBool(el){ return el.classList.contains('on'); }
+  function parseFloatOrNull(v){ const n=parseFloat(v); return isFinite(n)?n:null; }
+
+  function saveNode(){
+    const node = {
+      id: uid(),
+      ts: Date.now(),
+      heroine: $('#heroine').value.trim(),
+      archetype: $('#archetype').value,
+      country: $('#country').value.trim(),
+      city: $('#city').value.trim(),
+      relationship: $('#relationship').value,
+      initiative: $('#initiative').value,
+      arc: $('#arc').value,
+      outcome: $('#outcome').value,
+      consent: getBool($('#consent')),
+      lat: parseFloatOrNull($('#lat').value),
+      lng: parseFloatOrNull($('#lng').value),
+      ripple: 1,
+      status:'active',
+      flags:{visited:false, seeded:false, climaxed:false},
+      notes: $('#notes').value.trim()
+    };
+    if(!node.heroine){ alert('Heroine name required'); return; }
+    state.logs.unshift(node); save();
+    $('#activeNodes').textContent = state.logs.filter(x=>x.status!=='retired').length;
+    renderLogs();
+    pushMarker(node);
+    buildPrompt();
+    alert('Saved.');
+  }
+
+  /* =========================
+     DRAFT NEXT (local heuristic)
+  ==========================*/
+  function draftNext(){
+    const last = state.logs[0];
+    const arc = pickNext(state.lists.arcs, last?.arc);
+    const rel = pickNext(state.lists.relationships, last?.relationship);
+    const out = pickNext(state.lists.outcomes, last?.outcome);
+    $('#arc').value = arc; $('#relationship').value = rel; $('#outcome').value = out;
+    $('#notes').value = (last?`Auto‑draft from ${last.heroine} → suggest ${rel} under ${arc}, target outcome: ${out}.`:'New thread begin.');
+  }
+  function pickNext(list, avoid){ const pool=list.filter(x=>x!==avoid); return pool[Math.floor(Math.random()*pool.length)]||list[0]; }
+
+  /* =========================
+     BUILD PROMPT (no network)
+  ==========================*/
+  function buildPrompt(){
+    const p = {
+      actor: state.settings.name,
+      odysseyYear: computeOdysseyYear(),
+      mood: state.settings.mood,
+      node: {
+        heroine: $('#heroine').value.trim(), archetype: $('#archetype').value,
+        country: $('#country').value.trim(), city: $('#city').value.trim(),
+        relationship: $('#relationship').value, initiative: $('#initiative').value,
+        arc: $('#arc').value, outcome: $('#outcome').value, consent:getBool($('#consent')),
+        coords: [$('#lat').value, $('#lng').value].map(Number).filter(x=>!isNaN(x)),
+        notes: $('#notes').value.trim()
+      },
+      constraints: ['respect consent & culture','no minors','safe, sane, consensual','export‑first JSON/TXT/CSV'],
+      deliverables: ['story seed','email teaser','memory archive record']
+    };
+    $('#promptOut').value = `You are the narrative engine for the Straddie Protocol.\nJSON:\n${JSON.stringify(p,null,2)}`;
+  }
+
+  /* =========================
+     EXPORTS
+  ==========================*/
+  function doExport(kind){
+    const logs = state.logs;
+    if(kind==='json') download('story_logs.json', JSON.stringify(logs,null,2));
+    if(kind==='txt') download('story_logs.txt', logs.map(l=>`[${fmtDate(l.ts)}] ${l.heroine} @ ${l.city}, ${l.country} — ${l.arc} → ${l.outcome}`).join('\n'));
+    if(kind==='csv'){
+      const headers=['id','timestamp','heroine','archetype','country','city','relationship','initiative','arc','outcome','consent','lat','lng','ripple','status','visited','seeded','climaxed','notes'];
+      const rows = logs.map(l=>[
+        l.id, new Date(l.ts).toISOString(), l.heroine, l.archetype, l.country, l.city, l.relationship, l.initiative, l.arc, l.outcome, l.consent, l.lat??'', l.lng??'', l.ripple, l.status, l.flags.visited, l.flags.seeded, l.flags.climaxed, (l.notes||'').replace(/\n/g,' ')
+      ]);
+      const csv = [headers.join(','), ...rows.map(r=> r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','))].join('\n');
+      download('story_logs.csv', csv);
+    }
+  }
+  function download(name, content){
+    const blob = new Blob([content], {type:'application/octet-stream'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); URL.revokeObjectURL(a.href);
+  }
+
+  /* =========================
+     LOGS LIST
+  ==========================*/
+  function renderLogs(){
+    const q = ($('#logSearch').value||'').toLowerCase();
+    const filt = $('#logFilter').value||'All';
+    const el = $('#logList'); el.innerHTML='';
+    state.logs.filter(l=>{
+      const okQ = !q || [l.heroine,l.city,l.country,l.arc,l.outcome].some(x=> (x||'').toLowerCase().includes(q));
+      const tag = l.flags.climaxed? 'Climaxed' : l.flags.seeded? 'Seeded' : l.flags.visited? 'Visited' : l.status==='retired'? 'Retired' : 'Active';
+      const okF = filt==='All' || filt===tag;
+      return okQ && okF;
+    }).forEach(l=>{
+      const div=document.createElement('div'); div.className='item';
+      const left=document.createElement('div');
+      left.innerHTML = `<b>${l.heroine}</b> — ${l.city||'—'}, ${l.country||'—'}<div class="meta">${fmtDate(l.ts)} • ${l.arc} → <b>${l.outcome}</b> • ${l.relationship} • consent:${l.consent?'✅':'❌'}</div>`;
+      const right=document.createElement('div'); right.className='row';
+      const openBtn=btn('Open', ()=> openLog(l.id));
+      const editBtn=btn('Edit', ()=> editLog(l.id));
+      const retireBtn=btn(l.status==='retired'?'Reopen':'Retire', ()=> toggleRetire(l.id));
+      right.append(openBtn,editBtn,retireBtn);
+      div.append(left,right); el.append(div);
+    });
+  }
+  function btn(label, fn){ const b=document.createElement('button'); b.className='btn'; b.textContent=label; b.addEventListener('click', fn); return b; }
+  function openLog(id){ const l=state.logs.find(x=>x.id===id); if(!l) return; $('#heroine').value=l.heroine; $('#archetype').value=l.archetype; $('#country').value=l.country; $('#city').value=l.city; $('#relationship').value=l.relationship; $('#initiative').value=l.initiative; $('#arc').value=l.arc; $('#outcome').value=l.outcome; setSwitch('#consent', l.consent); $('#lat').value=l.lat??''; $('#lng').value=l.lng??''; $('#notes').value=l.notes||''; switchPanel('gen'); buildPrompt(); }
+  function editLog(id){ const l=state.logs.find(x=>x.id===id); if(!l) return; const n=prompt('Update notes', l.notes||''); if(n!==null){ l.notes=n; save(); renderLogs(); }}
+  function toggleRetire(id){ const l=state.logs.find(x=>x.id===id); if(!l) return; l.status = l.status==='retired'?'active':'retired'; save(); $('#activeNodes').textContent = state.logs.filter(x=>x.status!=='retired').length; renderLogs(); renderSpiral(); }
+  function setSwitch(sel, on){ const el=$(sel); el.classList.toggle('on', !!on); }
+
+  /* =========================
+     SLIDEOUTS
+  ==========================*/
+  function toggleSlide(id, open){ const el=$('#'+id); el.classList.toggle('open', open ?? !el.classList.contains('open')); if(id==='orgasm'&&open) renderOrgasmArchive(); }
+
+  function renderWhispers(){ const el=$('#whisperList'); el.innerHTML=''; Object.entries(state.whispers).forEach(([c,n])=>{ const d=document.createElement('div'); d.className='card'; d.innerHTML=`<b>${c}</b><div class="help">${n}</div>`; el.append(d); }); }
+
+  function renderOrgasmArchive(){ const el=$('#orgasmList'); el.innerHTML=''; const list=state.logs.filter(l=> l.flags.climaxed); if(!list.length){ el.innerHTML='<div class="help">No climax events yet. When you mark a node as climaxed on the map, it appears here and can be overlaid with lunar phases later.</div>'; return; } list.forEach(l=>{ const d=document.createElement('div'); d.className='item'; d.innerHTML = `<div><b>${l.heroine}</b> — ${l.city||'—'}, ${l.country||'—'}<div class="meta">${fmtDate(l.ts)} • arc:${l.arc}</div></div>`; el.append(d); }); }
+
+  function renderSpiral(){ const el=$('#spiralList'); el.innerHTML=''; const total=state.logs.filter(x=>x.status!=='retired').length; const stages=[{name:'500', req: 50},{name:'10,000', req: 500},{name:'50,000', req: 2500}];
+    stages.forEach(s=>{ const done=Math.min(100, Math.round((total/s.req)*100)); const c=document.createElement('div'); c.className='card'; c.innerHTML=`<div class="row" style="justify-content:space-between"><b>Stage ${s.name}</b><span>${done}%</span></div><div class="help">${total}/${s.req} active nodes</div><div style="height:8px; background:rgba(255,255,255,.1); border-radius:8px; margin-top:8px"><div style="width:${done}%; height:8px; border-radius:8px; background:linear-gradient(90deg, var(--accent), var(--accent-2))"></div></div>`; el.append(c); });
+  }
+
+  /* =========================
+     CHARACTERS
+  ==========================*/
+  function renderCharacters(){ const el=$('#charList'); el.innerHTML=''; state.characters.forEach(c=>{ const d=document.createElement('div'); d.className='item'; d.innerHTML = `<div><b>${c.name}</b> — ${c.energy} • ${c.culture}<div class="meta">${c.archetype} | kinks:${c.kinks.join(', ')} | care:${c.traumas.join(', ')}</div></div>`; const r=document.createElement('div'); const b=btn('To Prompt', ()=>{ const prompt = characterToPrompt(c); navigator.clipboard.writeText(prompt); alert('Character prompt copied'); }); r.append(b); d.append(r); el.append(d); }); }
+
+  function characterToPrompt(c){ return `CHARACTER:\n${JSON.stringify(c,null,2)}\nUse as protagonist blueprint.`; }
+
+  $('#saveCharacter')?.addEventListener('click', ()=>{
+    const c={ id:uid(), name:$('#charName').value.trim(), energy:$('#charEnergy').value, culture:$('#charCulture').value.trim(), archetype:$('#charArchetype').value, kinks:($('#charKinks').value||'').split(',').map(s=>s.trim()).filter(Boolean), traumas:($('#charTraumas').value||'').split(',').map(s=>s.trim()).filter(Boolean), dna:$('#charDNA').value.trim(), notes:$('#charNotes').value.trim() };
+    if(!c.name){ alert('Name required'); return; }
+    state.characters.unshift(c); save(); renderCharacters(); alert('Saved to Codex');
+  });
+  $('#charToPrompt')?.addEventListener('click', ()=>{ const c={ name:$('#charName').value.trim(), energy:$('#charEnergy').value, culture:$('#charCulture').value.trim(), archetype:$('#charArchetype').value, kinks:($('#charKinks').value||'').split(',').map(s=>s.trim()).filter(Boolean), traumas:($('#charTraumas').value||'').split(',').map(s=>s.trim()).filter(Boolean), dna:$('#charDNA').value.trim(), notes:$('#charNotes').value.trim() }; $('#promptOut').value=characterToPrompt(c); switchPanel('gen'); });
+
+  /* =========================
+     QUICK ADD (FAB or inline)
+  ==========================*/
+  function quickAdd(which){
+    const map = {
+      archetypes:['Archetype name','archetypes','#archetype'],
+      relationships:['Relationship type','relationships','#relationship'],
+      initiatives:['Business initiative','initiatives','#initiative'],
+      arcs:['Narrative arc','arcs','#arc'],
+      outcomes:['Outcome','outcomes','#outcome'],
+      countries:['Country name','countries','#countryList'],
+      charArchetypes:['Sexual archetype','charArchetypes','#charArchetype']
+    };
+    if(!which){ const choices=Object.keys(map); which=prompt('Add to which list? '+choices.join(', ')); if(!which || !map[which]) return; }
+    const [label,key,sel] = map[which];
+    const val = prompt(label+':'); if(!val) return;
+    if(!state.lists[key].includes(val)) state.lists[key].push(val);
+    save();
+    if(sel.startsWith('#country')) fillDataList(sel, state.lists[key]); else fillSelect(sel, state.lists[key]);
+    alert('Added to '+key);
+  }
+
+  /* =========================
+     MAP (Leaflet)
+  ==========================*/
+  let map, markersLayer, mapPickMode=false, currentMarkerId=null;
+  function setupMap(){
+    map = L.map('map', { zoomControl:false, worldCopyJump:true }).setView([0,0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 5, attribution:'© OpenStreetMap' }).addTo(map);
+    markersLayer = L.layerGroup().addTo(map);
+    map.on('click', (e)=>{ if(mapPickMode){ $('#lat').value=e.latlng.lat.toFixed(5); $('#lng').value=e.latlng.lng.toFixed(5); mapPickMode=false; alert('Coords set.'); }});
+    $('#pickMap').addEventListener('click', ()=>{ mapPickMode=true; switchPanel('map'); setTimeout(()=> map.invalidateSize(), 150); });
+    // Populate existing
+    state.logs.forEach(pushMarker);
+
+    // Markers toggles
+    $('#mapVisited').addEventListener('click', ()=> markFlag('visited'));
+    $('#mapSeeded').addEventListener('click', ()=> markFlag('seeded'));
+    $('#mapClimaxed').addEventListener('click', ()=> markFlag('climaxed'));
+  }
+
+  function pushMarker(l){ if(l.lat==null||l.lng==null) return; const color = l.flags.climaxed?'#ff54d6' : l.flags.seeded?'#00f0ff' : l.flags.visited?'#7b7cf7' : '#9db0d0';
+    const icon = L.divIcon({ className:'', html:`<div style="width:14px;height:14px;border-radius:50%;background:${color};box-shadow:0 0 12px ${color}99"></div>` });
+    const m = L.marker([l.lat,l.lng], { icon }).addTo(markersLayer);
+    m.on('click', ()=>{ currentMarkerId = l.id; const msg=`<b>${l.heroine}</b><br>${l.city||''}, ${l.country||''}<br><small>${l.arc} → ${l.outcome}</small>`; m.bindPopup(msg).openPopup(); });
+  }
+
+  function refreshMarkers(){ markersLayer.clearLayers(); state.logs.forEach(pushMarker); }
+  function markFlag(flag){ if(!currentMarkerId){ alert('Tap a marker first'); return; } const l=state.logs.find(x=>x.id===currentMarkerId); l.flags[flag]=true; save(); refreshMarkers(); renderLogs(); if(flag==='climaxed') renderOrgasmArchive(); }
+
+  /* =========================
+     EXPORT MENU (header)
+  ==========================*/
+  function openExportMenu(){
+    const kinds=['txt','json','csv']; const pick = prompt('Export format? '+kinds.join(' / ')); if(!pick) return; if(!kinds.includes(pick)) return alert('Invalid'); doExport(pick);
+  }
+
+  function openSettings(){ $('#aboutModal').classList.add('open'); $('#userName').value=state.settings.name; $('#startDate').value=state.settings.startDate; $('#moodSelect').value=state.settings.mood; }
+
+  // Boot
+  init();
+  </script>
+</body>
+</html>
